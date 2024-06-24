@@ -62,11 +62,7 @@ def search_models(name):
         return None
     else:
         df = pd.DataFrame(data)[["name", "link", "epochs", "type"]]
-        df["link"] = df["link"].apply(
-            lambda x: f'<a href="{x}" target="_blank">{x}</a>'
-        )
         return df
-
 
 json_url = "https://huggingface.co/IAHispano/Applio/raw/main/pretrains.json"
 
@@ -109,14 +105,24 @@ def update_sample_rate_dropdown(model):
         "__type__": "update",
     }
 
+def handle_dataframe_click(event: gr.SelectData, df):
+    selected_cell = df.iloc[event.index[0], 1]
+    return selected_cell
 
 def download_tab():
     with gr.Column():
         gr.Markdown(value=i18n("## Download Model"))
         model_link = gr.Textbox(
+            elem_id="model_link",
             label=i18n("Model Link"),
             placeholder=i18n("Introduce the model link"),
             interactive=True,
+        )
+        model_link.change(
+            None,
+            [],
+            [],
+            js="e => document.querySelector('#model_link').scrollIntoView({ behavior: 'smooth' })"
         )
         model_download_output_info = gr.Textbox(
             label=i18n("Output Information"),
@@ -151,7 +157,8 @@ def download_tab():
             placeholder=i18n("Introduce the model name to search."),
             interactive=True,
         )
-        search_table = gr.Dataframe(datatype="markdown")
+        search_table = gr.Dataframe(wrap=True, datatype=["str", "str", "number", "str"])
+        search_table.select(handle_dataframe_click, inputs=[search_table], outputs=[model_link])
         search = gr.Button(i18n("Search"))
         search.click(
             fn=search_models,
